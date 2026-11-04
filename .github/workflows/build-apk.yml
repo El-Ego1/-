@@ -1,0 +1,66 @@
+name: Build Hesabati APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get Project
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Prepare Website
+        run: |
+          mkdir -p www
+          rsync -a \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='node_modules/' \
+            --exclude='android/' \
+            --exclude='www/' \
+            --exclude='package*.json' \
+            --exclude='capacitor.config.json' \
+            --exclude='README.md' \
+            ./ www/
+
+      - name: Verify Capacitor Config
+        run: |
+          cat capacitor.config.json
+          node -e "const c = require('./capacitor.config.json'); if (!c.appId) throw new Error('Missing appId'); if (!c.appName) throw new Error('Missing appName'); console.log('App ID:', c.appId); console.log('Web Directory:', c.webDir);"
+          test -f www/index.html
+
+      - name: Add Android
+        run: npx cap add android
+
+      - name: Sync Android
+        run: npx cap sync android
+
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hesabati-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
