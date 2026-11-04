@@ -1,13 +1,6 @@
 {
   "appId": "com.hesabati.erp",
   "appName": "حسابتي",
-  "webDir": "www",
-   "server": {
-    "androidScheme": "https"
-  },
-  "android": {
-    "backgroundColor": "#0b1220",
-    "allowMixedContent": false
-  }
-
+  "webDir": "www"
+   
 }
