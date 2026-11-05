@@ -9,14 +9,14 @@
 
 <!-- ═══ PWA / App readiness ═══ -->
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=2">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="حسابتي">
 <meta name="application-name" content="حسابتي ERP">
 <meta name="msapplication-TileColor" content="#172554">
 <meta name="msapplication-TileImage" content="icons/icon-192.png">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%231e3a8a'/%3E%3Crect x='5' y='8' width='14' height='10' rx='2' fill='none' stroke='white' stroke-width='1.8'/%3E%3Cpath d='M5 11h14' stroke='white' stroke-width='1.8'/%3E%3Ccircle cx='15.5' cy='14' r='1' fill='white'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231d4ed8'/%3E%3Cstop offset='.55' stop-color='%233b82f6'/%3E%3Cstop offset='1' stop-color='%231ba1e2'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16.64' fill='url(%23g)'/%3E%3Cg transform='translate(12.032 13.696) scale(1.66400)' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='5.5' width='19' height='14' rx='3.5'/%3E%3Cpath d='M2.5 10h19'/%3E%3Cpath d='M2.5 10v6a3.5 3.5 0 0 0 3.5 3.5h12a3.5 3.5 0 0 0 3.5-3.5v-6'/%3E%3Ccircle cx='15.8' cy='14.6' r='1.1' fill='%23fff' stroke='none'/%3E%3Cpath d='M6.5 5.5v-1a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1'/%3E%3C/g%3E%3C/svg%3E">
 <!-- ═══ تصميم محسّن ═══ -->
 
 <title>HESABATI ERP — نظام الموارد البشرية والخزائن</title>
@@ -25,6 +25,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 <style>
 :root{
   --primary:#1e3a8a; --primary-light:#3b82f6; --primary-dark:#172554;
@@ -364,23 +367,52 @@ body.locked #profileSheet{ display:none!important; }
 .pf-passwrap .form-control{ padding-left:42px; }
 .pf-eye{ position:absolute; left:6px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:1rem; padding:6px; }
 
+/* ═══════════════ إدارة الخزائن + تحسينات لوحة التحكم ═══════════════ */
+#modalVault,#modalVaultStatement,#modalVaultMove,#modalVaultRename,#modalPayExpense{ z-index:215; }
+.tappable{ cursor:pointer; }
+.tappable:active{ transform:scale(.97); }
+.vault-chip.vc-tap{ cursor:pointer; gap:8px; }
+.vc-btn{ width:32px; height:32px; border-radius:10px; border:none; font-size:1.15rem; font-weight:900; cursor:pointer; color:#fff; display:flex; align-items:center; justify-content:center; line-height:1; flex-shrink:0; }
+.vc-btn.in{ background:var(--success); }
+.vc-btn.out{ background:var(--warning); }
+.vc-btn:active{ transform:scale(.9); }
+.vm-total{ display:flex; justify-content:space-between; align-items:center; padding:13px 15px; border-radius:16px; background:var(--grad); color:#fff; margin-bottom:12px; font-weight:800; font-size:.85rem; }
+.vm-total strong{ font-size:1.2rem; }
+.vm-card{ background:var(--surface2); border:1px solid var(--border); border-radius:16px; padding:12px; margin-bottom:10px; }
+.vm-top{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px; }
+.vm-top small{ color:var(--text-muted); font-weight:700; }
+.vm-bal{ color:var(--primary); font-size:1.05rem; font-weight:900; }
+[data-theme="dark"] .vm-bal{ color:#7db3ff; }
+.vm-actions{ display:flex; flex-wrap:wrap; gap:6px; }
+.vs-sum{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
+.vs-box{ background:var(--surface2); border:1px solid var(--border); border-radius:14px; padding:9px 4px; text-align:center; min-width:0; }
+.vs-box b{ display:block; font-size:.88rem; font-weight:900; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.vs-box span{ font-size:.62rem; color:var(--text-muted); font-weight:800; }
+.vs-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:10px 2px; border-bottom:1px dotted var(--border); }
+.vs-row small{ display:block; color:var(--text-muted); font-size:.68rem; font-weight:700; margin-top:2px; }
+.vs-amt{ text-align:left; font-weight:900; white-space:nowrap; }
+.vs-amt.in{ color:var(--success); }
+.vs-amt.out{ color:var(--danger); }
+@media(max-width:640px){ #quickActions{ grid-template-columns:repeat(3,1fr); } }
+
+/* ═══════════════ المزامنة السحابية ═══════════════ */
+.sync-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; background:#94a3b8; }
+.sync-dot.ok{ background:#4ade80; }
+.sync-dot.busy{ background:#fbbf24; animation:syncPulse 1s infinite; }
+.sync-dot.bad{ background:#f87171; }
+.sync-dot.off{ display:none; }
+@keyframes syncPulse{ 0%,100%{opacity:1} 50%{opacity:.3} }
+.pf-sub{ display:block; color:var(--text-muted); font-size:.68rem; font-weight:700; margin-top:1px; }
+
+/* ═══════════════ إدخال اسم الموظف بالكتابة ═══════════════ */
+.emp-hint{ font-size:.74rem; font-weight:800; margin-top:5px; min-height:1.1em; color:var(--text-muted); }
+.emp-hint.ok{ color:var(--success); }
+.emp-hint.bad{ color:var(--danger); }
+.emp-hint.warn{ color:var(--warning); }
+
 </style>
 </head>
 <body class="locked">
-
-<!-- ═══ شاشة التحميل الفاخرة ═══ -->
-<div id="loadingScreen">
-  <div class="load-inner">
-    <div class="load-logo" style="border-radius:28px;box-shadow:0 0 0 10px rgba(59,130,246,.12),0 20px 60px -15px rgba(37,99,235,.6)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5.5" width="19" height="14" rx="3.5"/><path d="M2.5 10h19"/><path d="M2.5 10v6a3.5 3.5 0 0 0 3.5 3.5h12a3.5 3.5 0 0 0 3.5-3.5v-6"/><circle cx="15.8" cy="14.6" r="1.1" fill="currentColor" stroke="none"/><path d="M6.5 5.5v-1a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1"/></svg>
-    </div>
-    <div class="load-title">HESABATI <span>ERP</span></div>
-    <div class="load-sub">نظام الموارد البشرية والخزائن</div>
-    <div class="load-bar"><div class="load-fill" id="loadFill"></div></div>
-    <div class="load-pct" id="loadPct">0%</div>
-    <div class="load-dots"><span></span><span></span><span></span></div>
-  </div>
-</div>
 
 <!-- ═══ شاشة الدخول وإنشاء الحساب ═══ -->
 <section id="authScreen">
@@ -436,7 +468,17 @@ body.locked #profileSheet{ display:none!important; }
 <main>
 <!-- ══ 1. لوحة التحكم ══ -->
 <section id="screen-dashboard" class="screen active">
- 
+  <!-- بطاقة الترحيب -->
+<div class="card hero-card" id="heroCard" style="margin-bottom:12px;display:none">
+  <div style="display:flex;align-items:center;gap:12px">
+    <div id="heroAvatar" style="width:52px;height:52px;border-radius:16px;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.4rem;font-weight:900;flex-shrink:0;box-shadow:0 8px 18px -6px rgba(37,99,235,.5)"></div>
+    <div style="flex:1;min-width:0">
+      <div id="heroGreeting" style="font-size:1.15rem;font-weight:900"></div>
+      <div id="heroSub" style="font-size:.75rem;color:var(--text-muted);font-weight:700"></div>
+    </div>
+    <span class="badge badge-success" id="heroDayStatus" style="flex-shrink:0"></span>
+  </div>
+</div>
 <!-- اختصارات سريعة -->
 <div class="grid grid-4" style="margin-bottom:12px" id="quickActions">
   <button class="card quick-btn" onclick="go('employees');setTimeout(openEmployeeModal,150)"><span class="q-ico" style="background:#dbeafe;color:#1d4ed8">👤</span><span>موظف جديد</span></button>
@@ -996,6 +1038,74 @@ body.locked #profileSheet{ display:none!important; }
   </div>
 </div>
 
+<!-- ═══ إدارة الخزائن ═══ -->
+<div id="modalVaultsMgr" class="modal-overlay" onclick="if(event.target===this)closeModal('modalVaultsMgr')">
+  <div class="modal"><div class="modal-handle"></div>
+    <div class="modal-header"><h3 class="modal-title">الخزائن</h3><button class="close-btn" onclick="closeModal('modalVaultsMgr')">&times;</button></div>
+    <div class="vm-total"><span>إجمالي السيولة</span><strong id="vmTotal">0 ج.م</strong></div>
+    <div id="vmList"></div>
+    <button class="btn btn-primary btn-block" onclick="openModal('modalVault')">خزينة جديدة +</button>
+  </div>
+</div>
+
+<div id="modalVaultStatement" class="modal-overlay" onclick="if(event.target===this)closeModal('modalVaultStatement')">
+  <div class="modal"><div class="modal-handle"></div>
+    <div class="modal-header"><h3 class="modal-title" id="vsTitle">كشف حساب</h3><button class="close-btn" onclick="closeModal('modalVaultStatement')">&times;</button></div>
+    <div class="vs-sum">
+      <div class="vs-box"><b id="vsBal">0</b><span>الرصيد الحالي</span></div>
+      <div class="vs-box"><b id="vsIn" style="color:var(--success)">0</b><span>إجمالي الوارد</span></div>
+      <div class="vs-box"><b id="vsOut" style="color:var(--danger)">0</b><span>إجمالي الصادر</span></div>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+      <button class="btn btn-success btn-sm" onclick="openVaultMove(VS.id,'in')">+ إيداع</button>
+      <button class="btn btn-warning btn-sm" onclick="openVaultMove(VS.id,'out')">− سحب</button>
+      <button class="btn btn-secondary btn-sm" onclick="exportVaultStatement()">Excel</button>
+    </div>
+    <div class="seg-control">
+      <button id="vsF_all" class="active" onclick="vsFilter('all')">الكل</button>
+      <button id="vsF_in" onclick="vsFilter('in')">وارد</button>
+      <button id="vsF_out" onclick="vsFilter('out')">صادر</button>
+    </div>
+    <div id="vsList"></div>
+  </div>
+</div>
+
+<div id="modalVaultMove" class="modal-overlay" onclick="if(event.target===this)closeModal('modalVaultMove')">
+  <div class="modal"><div class="modal-handle"></div>
+    <div class="modal-header"><h3 class="modal-title" id="vmMoveTitle">إيداع</h3><button class="close-btn" onclick="closeModal('modalVaultMove')">&times;</button></div>
+    <form onsubmit="saveVaultMove(event)" autocomplete="off">
+      <input type="hidden" id="vmMoveVault"><input type="hidden" id="vmMoveDir">
+      <div class="form-group"><label>الرصيد الحالي</label><input type="text" id="vmMoveBal" class="form-control" readonly></div>
+      <div class="form-group"><label>المبلغ (ج.م) *</label><input type="number" id="vmMoveAmount" class="form-control" required min="0.01" step="0.01" inputmode="decimal"></div>
+      <div class="form-group"><label id="vmMoveNotesLabel">البيان</label><input type="text" id="vmMoveNotes" class="form-control"></div>
+      <button type="submit" id="vmMoveBtn" class="btn btn-success btn-block">تأكيد</button>
+    </form>
+  </div>
+</div>
+
+<div id="modalVaultRename" class="modal-overlay" onclick="if(event.target===this)closeModal('modalVaultRename')">
+  <div class="modal"><div class="modal-handle"></div>
+    <div class="modal-header"><h3 class="modal-title">تعديل اسم الخزينة</h3><button class="close-btn" onclick="closeModal('modalVaultRename')">&times;</button></div>
+    <form onsubmit="saveVaultRename(event)" autocomplete="off">
+      <input type="hidden" id="vrId">
+      <div class="form-group"><label>اسم الخزينة *</label><input type="text" id="vrName" class="form-control" required></div>
+      <button type="submit" class="btn btn-primary btn-block">حفظ الاسم</button>
+    </form>
+  </div>
+</div>
+
+<div id="modalPayExpense" class="modal-overlay" onclick="if(event.target===this)closeModal('modalPayExpense')">
+  <div class="modal"><div class="modal-handle"></div>
+    <div class="modal-header"><h3 class="modal-title">سداد مصروف آجل</h3><button class="close-btn" onclick="closeModal('modalPayExpense')">&times;</button></div>
+    <form onsubmit="executePayExpense(event)">
+      <input type="hidden" id="peId">
+      <div class="form-group"><label>المصروف</label><input type="text" id="peInfo" class="form-control" readonly></div>
+      <div class="form-group"><label>الدفع من خزينة *</label><select id="peVault" class="form-control" required></select></div>
+      <button type="submit" class="btn btn-success btn-block">تأكيد السداد</button>
+    </form>
+  </div>
+</div>
+
 <div id="toast" class="toast"></div>
 
 <script>
@@ -1338,7 +1448,7 @@ function saveReconciliation(ev){
   const book=vaultBalance(id); const diff=Math.round((actual-book)*100)/100;
   if(diff===0){ audit('جرد خزينة', vaultById(id).name+' — مطابقة تماماً'); saveState(); closeModal('modalReconcile'); toast('الأرصدة متطابقة — لا فروق','success'); return; }
   txVault(id,'تسوية جرد '+vaultById(id).name, Math.abs(diff), diff>0?'in':'out','RECON-'+uid(), reason);
-  audit('تسوية جرد', vaultById(id).name+' — فرق '+money(Math.abs(diff))+' ('+(diff>0?'عجز دفتري':'زيادة فعلية')+') — '+reason);
+  audit('تسوية جرد', vaultById(id).name+' — فرق '+money(Math.abs(diff))+' ('+(diff>0?'زيادة فعلية':'عجز فعلي')+') — '+reason);
   saveState(); closeModal('modalReconcile'); refreshAll();
   toast('تمت التسوية بقيد مالي موثق','success');
 }
@@ -1597,7 +1707,7 @@ function executePayrollDisbursement(ev){
         l.installments.forEach(inst=>{
           if(inst.dueMonth===mk && inst.status!=='مسدد'){
             inst.status='مسدد'; inst.paymentDate=todayStr(); inst.vaultId=vaultId; inst.viaPayroll=true;
-            txVault(vaultId,'قسط سلفة من مسير '+monthName(mk), inst.amount,'in','LOANPAY-PAYROLL-'+l.id+'-'+inst.installmentNumber,'قسط '+inst.installmentNumber+' — '+(empById(l.empId)||{}).name);
+            /* القسط يُخصم من الراتب نفسه: الصرف بالصافي، فلا يوجد دخول نقدي إضافي للخزينة */
           }
         });
       });
@@ -1907,16 +2017,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   applyTheme();
   document.body.classList.add('locked');
   document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open')); closeMoreSheet(); } });
-  // شريط تقدم فخم لا يقل عن ~3 ثوانٍ
-  let progress=0, loaded=false;
-  const fill=document.getElementById('loadFill'), pct=document.getElementById('loadPct');
-  const iv=setInterval(()=>{
-    progress=Math.min(progress+(loaded?14:(progress<65?Math.random()*9+4:Math.random()*2+0.4)),100);
-    fill.style.width=progress+'%'; pct.textContent=Math.round(progress)+'%';
-    if(progress>=100){ clearInterval(iv); setTimeout(finishBoot,250); }
-  },90);
-  window.addEventListener('load', ()=>{ setTimeout(()=>{ loaded=true; }, 1300); });
-  setTimeout(()=>{ loaded=true; }, 4500); // ضمان ضد أي تعليق
+  finishBoot(); // دخول مباشر بدون شاشة تحميل
   
 /* فتح الشاشة من رابط خارجي: index.html#payroll */
 (function(){
@@ -2019,6 +2120,790 @@ function pfBackup(){ exportBackupJSON(); }
 function pfGoReports(){ closeProfile(); go('reports'); }
 function pfLogout(){ logout(); if(!currentUser) closeProfile(); }
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeProfile(); });
+
+/* ═══════════════ إدارة الخزائن (إيداع / سحب / كشف حساب / تعديل / حذف) ═══════════════ */
+function openVaultsMgr(){ renderVaultsMgr(); openModal('modalVaultsMgr'); }
+function renderVaultsMgr(){
+  const list=document.getElementById('vmList'); if(!list) return;
+  document.getElementById('vmTotal').textContent=money(S.vaults.reduce((a,v)=>a+v.balance,0));
+  if(!S.vaults.length){ list.innerHTML='<div class="empty-state">لا توجد خزائن بعد — أنشئ أول خزينة وأضف لها رصيداً</div>'; return; }
+  list.innerHTML=S.vaults.map(v=>{
+    const n=S.vaultTransactions.filter(t=>t.vaultId===v.id).length;
+    return `<div class="vm-card">
+      <div class="vm-top"><div><strong>${esc(v.name)}</strong><br><small>${n} حركة</small></div><span class="vm-bal">${money(v.balance)}</span></div>
+      <div class="vm-actions">
+        <button class="btn btn-success btn-sm" onclick="openVaultMove(${v.id},'in')">+ إيداع</button>
+        <button class="btn btn-warning btn-sm" onclick="openVaultMove(${v.id},'out')">− سحب</button>
+        <button class="btn btn-secondary btn-sm" onclick="openVaultStatement(${v.id})">كشف حساب</button>
+        <button class="btn btn-secondary btn-sm" onclick="openVaultRename(${v.id})">تعديل</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteVault(${v.id})">حذف</button>
+      </div></div>`;
+  }).join('');
+}
+function openVaultMove(id, dir){
+  const v=vaultById(id); if(!v){ toast('الخزينة غير موجودة','error'); return; }
+  const inn=(dir==='in');
+  document.getElementById('vmMoveVault').value=v.id;
+  document.getElementById('vmMoveDir').value=dir;
+  document.getElementById('vmMoveTitle').textContent=(inn?'إيداع في: ':'سحب من: ')+v.name;
+  document.getElementById('vmMoveBal').value=money(v.balance);
+  document.getElementById('vmMoveAmount').value='';
+  document.getElementById('vmMoveNotes').value='';
+  document.getElementById('vmMoveNotesLabel').textContent=inn?'المصدر / البيان (اختياري)':'سبب السحب *';
+  document.getElementById('vmMoveNotes').required=!inn;
+  const b=document.getElementById('vmMoveBtn'); b.textContent=inn?'تأكيد الإيداع':'تأكيد السحب'; b.className='btn btn-block '+(inn?'btn-success':'btn-warning');
+  openModal('modalVaultMove');
+  setTimeout(()=>{ const a=document.getElementById('vmMoveAmount'); if(a) a.focus(); },150);
+}
+function saveVaultMove(ev){
+  ev.preventDefault();
+  const id=+document.getElementById('vmMoveVault').value;
+  const dir=document.getElementById('vmMoveDir').value;
+  const amt=Math.round((+document.getElementById('vmMoveAmount').value)*100)/100;
+  const notes=document.getElementById('vmMoveNotes').value.trim();
+  const v=vaultById(id); if(!v){ toast('الخزينة غير موجودة','error'); return; }
+  if(!(amt>0)){ toast('أدخل مبلغاً صحيحاً','error'); return; }
+  if(dir==='out' && v.balance<amt){ toast('الرصيد غير كافٍ — المتاح '+money(v.balance),'error'); return; }
+  txVault(id, dir==='in'?'إيداع نقدي':'سحب نقدي', amt, dir, 'MOVE-'+uid(), notes);
+  audit(dir==='in'?'إيداع في خزينة':'سحب من خزينة', v.name+' — '+money(amt)+(notes?' — '+notes:''));
+  saveState(); closeModal('modalVaultMove'); refreshAll();
+  toast(dir==='in'?'تم الإيداع — الرصيد '+money(v.balance):'تم السحب — الرصيد '+money(v.balance),'success');
+}
+let VS={id:0,f:'all'};
+function openVaultStatement(id){ VS.id=+id; VS.f='all'; renderVaultStatement(); openModal('modalVaultStatement'); }
+function vsFilter(f){ VS.f=f; renderVaultStatement(); }
+function vaultStatementRows(v){
+  const all=S.vaultTransactions.filter(t=>t.vaultId===v.id);
+  const sumIn=all.filter(t=>t.direction==='in').reduce((a,t)=>a+t.amount,0);
+  const sumOut=all.filter(t=>t.direction==='out').reduce((a,t)=>a+t.amount,0);
+  let run=Math.round((v.balance-(sumIn-sumOut))*100)/100;
+  const rows=all.map(t=>{ run=Math.round((run+(t.direction==='in'?t.amount:-t.amount))*100)/100; return {t,bal:run}; });
+  return {rows,sumIn,sumOut};
+}
+function renderVaultStatement(){
+  const v=vaultById(VS.id); if(!v) return;
+  document.getElementById('vsTitle').textContent='كشف حساب — '+v.name;
+  const {rows,sumIn,sumOut}=vaultStatementRows(v);
+  document.getElementById('vsBal').textContent=fmt(v.balance);
+  document.getElementById('vsIn').textContent=fmt(sumIn);
+  document.getElementById('vsOut').textContent=fmt(sumOut);
+  ['all','in','out'].forEach(k=>document.getElementById('vsF_'+k).classList.toggle('active',VS.f===k));
+  const shown=rows.filter(x=>VS.f==='all'||x.t.direction===VS.f).reverse();
+  const box=document.getElementById('vsList');
+  if(!shown.length){ box.innerHTML='<div class="empty-state">لا توجد حركات</div>'; return; }
+  box.innerHTML=shown.slice(0,150).map(x=>`
+    <div class="vs-row"><div><strong>${esc(x.t.type)}</strong><small>${x.t.date}${x.t.notes?' • '+esc(x.t.notes):''}</small></div>
+    <div class="vs-amt ${x.t.direction}">${x.t.direction==='in'?'+':'−'} ${money(x.t.amount)}<small style="text-align:left">الرصيد ${fmt(x.bal)}</small></div></div>`).join('')
+    + (shown.length>150?'<div class="empty-state">يُعرض آخر 150 حركة — صدّر Excel للكشف الكامل</div>':'');
+}
+function exportVaultStatement(){
+  const v=vaultById(VS.id); if(!v) return;
+  if(typeof XLSX==='undefined'){ toast('مكتبة Excel غير محمّلة — تأكد من الاتصال بالإنترنت','error'); return; }
+  const {rows}=vaultStatementRows(v);
+  const data=[['التاريخ','النوع','البيان','وارد','صادر','الرصيد'],
+    ...rows.map(x=>[x.t.date,x.t.type,x.t.notes||'',x.t.direction==='in'?x.t.amount:'',x.t.direction==='out'?x.t.amount:'',x.bal])];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),'كشف حساب');
+  XLSX.writeFile(wb,'كشف-خزينة-'+v.name.replace(/[\\\/:*?"<>|]/g,'')+'-'+todayStr()+'.xlsx');
+  toast('تم تصدير كشف الحساب','success');
+}
+function openVaultRename(id){
+  const v=vaultById(id); if(!v) return;
+  document.getElementById('vrId').value=v.id; document.getElementById('vrName').value=v.name;
+  openModal('modalVaultRename');
+}
+function saveVaultRename(ev){
+  ev.preventDefault();
+  const v=vaultById(document.getElementById('vrId').value); if(!v) return;
+  const n=document.getElementById('vrName').value.trim();
+  if(!n){ toast('اكتب اسم الخزينة','error'); return; }
+  if(S.vaults.some(x=>x.id!==v.id && x.name.toLowerCase()===n.toLowerCase())){ toast('يوجد خزينة بنفس الاسم','error'); return; }
+  const old=v.name; v.name=n;
+  audit('تعديل اسم خزينة','من "'+old+'" إلى "'+n+'"');
+  saveState(); closeModal('modalVaultRename'); refreshAll(); toast('تم تعديل الاسم','success');
+}
+function deleteVault(id){
+  const v=vaultById(id); if(!v) return;
+  if(Math.abs(v.balance)>0.004){ toast('اسحب الرصيد ('+money(v.balance)+') أو حوّله لخزينة أخرى قبل الحذف','error'); return; }
+  if(!confirm('حذف خزينة "'+v.name+'"؟ سيتم حذف كشف حسابها أيضاً.')) return;
+  S.vaults=S.vaults.filter(x=>x.id!==v.id);
+  S.vaultTransactions=S.vaultTransactions.filter(t=>t.vaultId!==v.id);
+  audit('حذف خزينة', v.name);
+  saveState(); refreshAll(); toast('تم حذف الخزينة','success');
+}
+function openVaultQuick(dir){
+  if(!S.vaults.length){ toast('أنشئ خزينة أولاً ثم أودع فيها','error'); openModal('modalVault'); return; }
+  if(S.vaults.length===1){ openVaultMove(S.vaults[0].id,dir); return; }
+  openVaultsMgr();
+}
+
+/* ═══════════════ سداد المصروفات الآجلة ═══════════════ */
+function openPayExpense(id){
+  const x=S.expenses.find(e=>e.id===+id); if(!x) return;
+  if(!S.vaults.length){ toast('أنشئ خزينة أولاً','error'); openVaultsMgr(); return; }
+  document.getElementById('peId').value=x.id;
+  document.getElementById('peInfo').value=x.title+' — '+money(x.amount);
+  document.getElementById('peVault').innerHTML=S.vaults.map(v=>`<option value="${v.id}">${esc(v.name)} (${money(v.balance)})</option>`).join('');
+  openModal('modalPayExpense');
+}
+function executePayExpense(ev){
+  ev.preventDefault();
+  const x=S.expenses.find(e=>e.id===+document.getElementById('peId').value); if(!x) return;
+  if(x.status==='مدفوع'){ toast('هذا المصروف مدفوع مسبقاً','error'); return; }
+  const vid=+document.getElementById('peVault').value;
+  if(!vid){ toast('اختر الخزينة','error'); return; }
+  if(vaultBalance(vid)<x.amount){ toast('الرصيد غير كافٍ — المتاح '+money(vaultBalance(vid)),'error'); return; }
+  txVault(vid,'سداد مصروف: '+x.title, x.amount,'out','EXP-'+x.id, x.category);
+  x.status='مدفوع'; x.vaultId=vid; x.paidAt=todayStr();
+  audit('سداد مصروف آجل', x.title+' — '+money(x.amount)+' — '+(vaultById(vid)||{}).name);
+  saveState(); closeModal('modalPayExpense'); renderExpenses(); refreshAll();
+  toast('تم سداد المصروف من الخزينة','success');
+}
+
+/* ═══════════════ تحسين لوحة التحكم (كروت قابلة للضغط + إجراءات الخزائن) ═══════════════ */
+function enhanceDashboard(){
+  // 1) الكروت العلوية قابلة للضغط
+  [['statEmpCount',()=>go('employees')],['statVaultTotal',()=>openVaultsMgr()],
+   ['statActiveLoans',()=>go('loans')],['statMonthExpenses',()=>go('expenses')]].forEach(([id,fn])=>{
+    const card=document.getElementById(id) && document.getElementById(id).closest('.stat-card');
+    if(card && !card.dataset.tap){ card.dataset.tap='1'; card.classList.add('tappable'); card.setAttribute('role','button'); card.addEventListener('click',fn); }
+  });
+  // 2) اختصارات إضافية
+  const qa=document.getElementById('quickActions');
+  if(qa && !document.getElementById('qaDeposit')){
+    qa.insertAdjacentHTML('beforeend',
+      '<button id="qaDeposit" class="card quick-btn" onclick="openVaultQuick(\'in\')"><span class="q-ico" style="background:#d1fae5;color:#047857">💵</span><span>إيداع بالخزينة</span></button>'+
+      '<button class="card quick-btn" onclick="go(\'expenses\')"><span class="q-ico" style="background:#fee2e2;color:#b91c1c">💳</span><span>تسجيل مصروف</span></button>');
+  }
+  // 3) زر إدارة الخزائن بجوار "خزينة جديدة"
+  const list=document.getElementById('vaultListMini');
+  if(list && !document.getElementById('btnVaultsMgr')){
+    const head=list.parentElement.firstElementChild; const nb=head && head.querySelector('button');
+    if(nb){
+      const wrap=document.createElement('div'); wrap.style.cssText='display:flex;gap:6px';
+      nb.parentNode.insertBefore(wrap,nb);
+      const mb=document.createElement('button'); mb.id='btnVaultsMgr'; mb.className='btn btn-secondary btn-sm no-print'; mb.textContent='إدارة'; mb.onclick=openVaultsMgr;
+      wrap.appendChild(mb); wrap.appendChild(nb);
+    }
+  }
+  // 4) أرصدة الخزائن: ضغط = كشف حساب، وأزرار إيداع / سحب سريعة
+  if(list && S.vaults.length){
+    list.innerHTML=S.vaults.map(v=>{
+      const n=S.vaultTransactions.filter(t=>t.vaultId===v.id).length;
+      return `<div class="vault-chip vc-tap" onclick="openVaultStatement(${v.id})">
+        <div style="min-width:0"><strong>${esc(v.name)}</strong><br><small style="color:var(--text-muted)">${n} حركة — اضغط للكشف</small></div>
+        <div style="display:flex;align-items:center;gap:8px"><strong style="color:var(--primary)">${money(v.balance)}</strong>
+          <button class="vc-btn in" title="إيداع" onclick="event.stopPropagation();openVaultMove(${v.id},'in')">+</button>
+          <button class="vc-btn out" title="سحب" onclick="event.stopPropagation();openVaultMove(${v.id},'out')">−</button></div></div>`;
+    }).join('');
+  }
+}
+const __renderDashboard=renderDashboard;
+renderDashboard=function(){ __renderDashboard(); enhanceDashboard(); };
+
+const __refreshAll=refreshAll;
+refreshAll=function(){
+  __refreshAll();
+  const m=document.getElementById('modalVaultsMgr'); if(m && m.classList.contains('open')) renderVaultsMgr();
+  const st=document.getElementById('modalVaultStatement'); if(st && st.classList.contains('open')) renderVaultStatement();
+};
+
+// زر "سداد" للمصروفات الآجلة
+const __renderExpenses=renderExpenses;
+renderExpenses=function(){
+  __renderExpenses();
+  document.querySelectorAll('#expensesTableBody tr').forEach(tr=>{
+    if(tr.children.length<8) return;
+    const id=parseInt((tr.children[0].textContent||'').replace(/\D/g,''),10);
+    const x=S.expenses.find(e=>e.id===id);
+    if(x && x.status==='مستحق'){
+      const cell=tr.children[7];
+      cell.insertAdjacentHTML('afterbegin','<button class="btn btn-success btn-sm" style="margin-left:4px" onclick="openPayExpense('+x.id+')">سداد</button>');
+    }
+  });
+};
+
+/* ═══════════════ رسائل واضحة بدل صمت التحقق من النماذج (مهم داخل تطبيق الأندرويد) ═══════════════ */
+let __invalidBusy=false;
+document.addEventListener('invalid', e=>{
+  e.preventDefault();
+  if(__invalidBusy) return; __invalidBusy=true; setTimeout(()=>{ __invalidBusy=false; },400);
+  const el=e.target; const g=el.closest&&el.closest('.form-group'); const lb=g&&g.querySelector('label');
+  const name=lb? lb.textContent.replace(/[*:]/g,'').trim() : '';
+  let msg='من فضلك أكمل: '+(name||'البيانات المطلوبة');
+  if(el.validity){
+    if(el.validity.rangeUnderflow) msg='القيمة أقل من الحد الأدنى ('+el.min+')'+(name?' في: '+name:'');
+    else if(el.validity.rangeOverflow) msg='القيمة أكبر من الحد الأقصى ('+el.max+')'+(name?' في: '+name:'');
+  }
+  toast(msg,'error'); try{ el.focus(); }catch(_){}
+}, true);
+
+/* ═══════════════ زر الرجوع: يرجع للخطوة السابقة بدل الخروج من التطبيق ═══════════════ */
+const NAV={ screen:'dashboard', applying:false, buffered:false, ov:[], t:null };
+function navPush(){ try{ history.pushState({s:NAV.screen},''); }catch(e){} }
+function navEnsure(){ if(!NAV.buffered){ NAV.buffered=true; navPush(); } }
+function navTopOverlay(){
+  NAV.ov=NAV.ov.filter(id=>{ const el=document.getElementById(id); return el && el.classList.contains('open'); });
+  if(NAV.ov.length) return NAV.ov[NAV.ov.length-1];
+  const any=document.querySelector('.modal-overlay.open, #moreSheet.open, #profileSheet.open');
+  return any? any.id : null;
+}
+function navCloseOverlay(id){
+  if(id==='profileSheet'){
+    const main=document.getElementById('pfViewMain');
+    if(main && main.style.display==='none'){ pfShow('main'); return; }
+    closeProfile(); return;
+  }
+  if(id==='moreSheet'){ closeMoreSheet(); return; }
+  closeModal(id);
+}
+const __go=go;
+go=function(name){
+  const prev=NAV.screen;
+  __go(name);
+  NAV.screen=name;
+  if(!NAV.applying && name!==prev){ NAV.buffered=true; navPush(); }
+};
+const __openModal=openModal;
+openModal=function(id){
+  if(id==='modalLoan'){
+    if(!activeEmployees().length){ toast('أضف موظفاً نشطاً أولاً قبل صرف سلفة','error'); return; }
+    if(!S.vaults.length){ toast('أنشئ خزينة وأودع فيها رصيداً أولاً','error'); __openModal('modalVault'); NAV.ov.push('modalVault'); navEnsure(); return; }
+    if(!S.vaults.some(v=>v.balance>0)){ toast('رصيد الخزائن صفر — أودع مبلغاً أولاً لتتمكن من صرف السلفة','error'); openVaultsMgr(); return; }
+  }
+  __openModal(id); NAV.ov.push(id); navEnsure();
+};
+const __openMoreSheet=openMoreSheet;
+openMoreSheet=function(){ __openMoreSheet(); NAV.ov.push('moreSheet'); navEnsure(); };
+const __openProfile=openProfile;
+openProfile=function(){ __openProfile(); if(currentUser){ NAV.ov.push('profileSheet'); navEnsure(); } };
+
+window.addEventListener('popstate', e=>{
+  const st=e.state||{};
+  const locked=document.body.classList.contains('locked');
+  const ov=locked? null : navTopOverlay();
+  if(ov){                                   // نافذة مفتوحة: الرجوع يقفلها فقط
+    navCloseOverlay(ov);
+    navPush(); NAV.buffered=true;
+    return;
+  }
+  if(!locked && st.s && st.s!==NAV.screen){ // رجوع لشاشة سابقة
+    NAV.applying=true; try{ go(st.s); }finally{ NAV.applying=false; }
+    NAV.buffered=true; return;
+  }
+  if(st.root){                              // وصلنا لأول خطوة
+    NAV.buffered=false;
+    if(!locked && NAV.screen!=='dashboard'){
+      NAV.applying=true; try{ go('dashboard'); }finally{ NAV.applying=false; }
+      navPush(); NAV.buffered=true; return;
+    }
+    toast('اضغط رجوع مرة أخرى للخروج');
+    clearTimeout(NAV.t); NAV.t=setTimeout(()=>{ if(!NAV.buffered){ navPush(); NAV.buffered=true; } },2300);
+  }
+});
+(function navInit(){
+  try{ history.replaceState({root:true},''); }catch(e){}
+  document.addEventListener('click', navEnsure, {capture:true, once:true});
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   ☁️ المزامنة السحابية (Firebase Auth + Firestore)
+   — الحسابات والبيانات تتخزن على السحابة وتتزامن بين كل الأجهزة
+   — التطبيق يفضل شغال أوفلاين، وأي تعديل يترفع أوتوماتيك لما النت يرجع
+   — لو الإعدادات تحت فاضية: التطبيق يشتغل محلي بالكامل زي ما كان
+   ═══════════════════════════════════════════════════════════════ */
+const FIREBASE_CONFIG = {
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
+const CLOUD={ on:false, auth:null, db:null, uid:null, started:null, unsub:null, timer:null,
+              busy:false, again:false, applying:false, quiet:false, authReady:false,
+              status:'off', msg:'', last:null, device:'' };
+const CLOUD_SALT='#Hsb26';
+
+/* ── أدوات مساعدة ── */
+function cloudEmail(u){
+  const n=String(u||'').trim().toLowerCase();
+  const ok=/^[a-z0-9]+([._-][a-z0-9]+)*$/.test(n) && n.length<=40;
+  const local= ok ? n : '_'+Array.from(new TextEncoder().encode(n)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  return local+'@hesabati.app';
+}
+function cloudPass(p){ return p+CLOUD_SALT; }
+function cloudErr(e){
+  const c=(e&&e.code)||'';
+  const m={
+    'auth/network-request-failed':'مفيش اتصال بالإنترنت',
+    'auth/email-already-in-use':'اسم المستخدم مسجّل بالفعل — اختر اسماً آخر',
+    'auth/invalid-email':'اسم المستخدم غير صالح — جرّب حروف وأرقام فقط',
+    'auth/too-many-requests':'محاولات كثيرة — استنى شوية وجرّب تاني',
+    'auth/operation-not-allowed':'تسجيل الدخول بالإيميل/الباسورد مش مفعّل في Firebase (Authentication ← Sign-in method)',
+    'auth/invalid-api-key':'مفتاح Firebase (apiKey) غير صحيح',
+    'auth/user-disabled':'الحساب ده موقوف',
+    'auth/requires-recent-login':'سجّل الدخول من جديد وجرّب تاني',
+    'permission-denied':'Firestore رافض الوصول — راجع قواعد الأمان (Rules)',
+    'unavailable':'مفيش اتصال بالخادم'
+  };
+  return m[c]||('خطأ: '+(c||(e&&e.message)||'غير معروف'));
+}
+function cloudIsNet(e){ const c=(e&&e.code)||''; return c==='auth/network-request-failed'||c==='unavailable'||(typeof navigator!=='undefined'&&navigator.onLine===false); }
+function cloudKey(k,id){ return 'hesabati_'+k+'_u'+(id!=null?id:(currentUser?currentUser.id:'0')); }
+function cloudIsDirty(id){ return localStorage.getItem(cloudKey('dirty',id))==='1'; }
+function cloudSetDirty(){ try{ localStorage.setItem(cloudKey('dirty'),'1'); }catch(e){} }
+function cloudClearDirty(id){ try{ localStorage.removeItem(cloudKey('dirty',id)); }catch(e){} }
+function cloudSyncTs(id){ return +localStorage.getItem(cloudKey('sync',id))||0; }
+function cloudLocalHasData(){ return !!(S && (S.employees.length||S.vaults.length||S.loans.length||S.expenses.length||S.attendance.length||S.leaves.length||S.adjustments.length)); }
+function cloudSplit(json,size){
+  size=size||200000; const out=[]; let i=0;
+  while(i<json.length){
+    let end=Math.min(i+size,json.length);
+    if(end<json.length){ const c=json.charCodeAt(end-1); if(c>=0xD800&&c<=0xDBFF) end++; }  // ما نقطعش في نص رمز إيموجي
+    out.push(json.slice(i,end)); i=end;
+  }
+  return out.length?out:[''];
+}
+const cloudSleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ── حالة المزامنة (نقطة في الهيدر + سطر في لوحة الحساب) ── */
+function cloudSetStatus(st,msg){
+  CLOUD.status=st; CLOUD.msg=msg||'';
+  const dot=document.getElementById('syncDot');
+  if(dot) dot.className='sync-dot '+({idle:'ok',syncing:'busy',offline:'bad',error:'bad',signedout:'bad',off:'off'}[st]||'off');
+  const el=document.getElementById('pfSyncState');
+  if(el){
+    const hm=CLOUD.last? new Date(CLOUD.last).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'}) : '';
+    el.textContent={ off:'غير مفعّلة — أضف إعدادات Firebase في الملف', syncing:'جاري المزامنة…',
+      offline:'بدون اتصال — هتتزامن تلقائياً لما النت يرجع', error:msg||'خطأ في المزامنة',
+      signedout:msg||'سجّل الدخول من جديد لتفعيل المزامنة', idle:hm?('✓ متزامن — آخر مزامنة '+hm):'✓ جاهزة' }[st]||'';
+  }
+}
+function cloudInjectUI(){
+  const chip=document.getElementById('userChip');
+  if(chip && !document.getElementById('syncDot')){ const d=document.createElement('span'); d.id='syncDot'; d.className='sync-dot off'; chip.appendChild(d); }
+  const sw=document.getElementById('pfThemeSwitch');
+  if(sw && !document.getElementById('pfSyncState')){
+    const list=sw.closest('.pf-list');
+    if(list) list.insertAdjacentHTML('afterbegin',
+      '<button type="button" class="pf-item" onclick="cloudSyncNow(false)">'+
+      '<span class="pf-ico" style="background:rgba(6,182,212,.15);color:#0891b2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg></span>'+
+      '<span class="pf-label">المزامنة السحابية<small class="pf-sub" id="pfSyncState"></small></span>'+
+      '<svg class="pf-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="15 18 9 12 15 6"/></svg></button>');
+  }
+  cloudSetStatus(CLOUD.status,CLOUD.msg);
+}
+function cloudBusy(btn,on,txt){
+  if(!btn) return;
+  if(on){ btn.dataset.t=btn.textContent; btn.textContent=txt||'جاري الاتصال...'; btn.disabled=true; }
+  else { if(btn.dataset.t) btn.textContent=btn.dataset.t; btn.disabled=false; }
+}
+
+/* ── قراءة وكتابة الحالة على Firestore (مقسّمة لقطع عشان حد 1MB للمستند) ── */
+async function cloudGetMeta(uid){
+  const s=await CLOUD.db.collection('users').doc(uid||CLOUD.uid).get();
+  return s.exists? s.data() : null;
+}
+async function cloudReadState(){
+  const base=CLOUD.db.collection('users').doc(CLOUD.uid).collection('state');
+  for(let a=0;a<4;a++){
+    const snap=await base.get();
+    const docs=snap.docs.map(d=>({i:parseInt(d.id.slice(1),10),x:d.data()})).sort((p,q)=>p.i-q.i);
+    const m=await cloudGetMeta();
+    if(m && docs.length===m.n && docs.every(d=>d.x.ts===m.ts)) return {json:docs.map(d=>d.x.d).join(''), ts:m.ts};
+    await cloudSleep(400*(a+1));
+  }
+  throw new Error('بيانات السحابة قيد التحديث — جرّب بعد لحظات');
+}
+async function cloudPushRaw(o){   // o: {uid,json,ts,prevN,name,username,id}
+  const chunks=cloudSplit(o.json);
+  const ref=CLOUD.db.collection('users').doc(o.uid), base=ref.collection('state');
+  const b=CLOUD.db.batch();
+  chunks.forEach((c,i)=>b.set(base.doc('c'+i),{d:c,ts:o.ts}));
+  for(let i=chunks.length;i<(o.prevN||0);i++) b.delete(base.doc('c'+i));
+  b.set(ref,{ts:o.ts,n:chunks.length,by:CLOUD.device,name:o.name,username:o.username,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+  await b.commit();
+  localStorage.setItem(cloudKey('sync',o.id),String(o.ts));
+}
+async function cloudPush(force){
+  if(!CLOUD.uid||!currentUser) return;
+  const meta0=await cloudGetMeta();
+  const ts=Math.max(S.__ts||0,(meta0&&meta0.ts||0)+1,force?Date.now():0);
+  S.__ts=ts; __saveState();                       // نحفظ الـ ts محلياً بدون ما نعتبره تعديل جديد
+  await cloudPushRaw({uid:CLOUD.uid,json:JSON.stringify(S),ts,prevN:meta0&&meta0.n||0,name:currentUser.name,username:currentUser.username,id:currentUser.id});
+  if(S && S.__ts===ts) cloudClearDirty();
+}
+async function cloudPullApply(){
+  const data=await cloudReadState();
+  const parsed=JSON.parse(data.json);
+  CLOUD.applying=true;
+  try{
+    S=Object.assign(defaultState(),parsed); S.config=Object.assign({},DEFAULT_CONFIG,S.config||{}); S.__ts=data.ts;
+    saveState();
+    localStorage.setItem(cloudKey('sync'),String(data.ts)); cloudClearDirty();
+  } finally { CLOUD.applying=false; }
+  if(!CLOUD.quiet && currentUser){ refreshAll(); go(NAV.screen); }
+}
+function cloudBackupLocal(){
+  try{
+    const blob=new Blob([JSON.stringify({app:'HESABATI_ERP',version:3,exportedAt:new Date().toISOString(),state:S},null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='hesabati-device-backup-'+todayStr()+'.json'; a.click();
+  }catch(e){}
+}
+async function cloudConflict(){
+  const useCloud=confirm('بيانات حسابك على السحابة مختلفة عن بيانات هذا الجهاز.\n\nموافق = استخدام بيانات السحابة (وهنحفظ نسخة من بيانات الجهاز كملف احتياطي)\nإلغاء = رفع بيانات هذا الجهاز واستبدال السحابة');
+  if(useCloud){ cloudBackupLocal(); await cloudPullApply(); return true; }
+  return false;
+}
+
+/* ── المزامنة الأساسية ── */
+async function cloudSyncNow(silent){
+  if(!CLOUD.on){ if(!silent) toast('المزامنة غير مفعّلة — ضع إعدادات Firebase في الملف','error'); return; }
+  if(!CLOUD.uid||!currentUser){ if(!silent) toast('سجّل خروج وادخل تاني بحسابك لتفعيل المزامنة','error'); return; }
+  if(CLOUD.busy){ CLOUD.again=true; return; }
+  CLOUD.busy=true; cloudSetStatus('syncing');
+  try{
+    const meta=await cloudGetMeta();
+    const syncTs=cloudSyncTs(), dirty=cloudIsDirty();
+    if(!meta || !meta.ts){ await cloudPush(); }          // السحابة لسه فيها الاسم بس من غير بيانات → نرفع بيانات الجهاز
+    else if(meta.ts>syncTs){
+      if(dirty || (syncTs===0 && cloudLocalHasData())){ if(!(await cloudConflict())) await cloudPush(true); }
+      else await cloudPullApply();
+    } else if(dirty){ await cloudPush(); }
+    CLOUD.last=Date.now(); cloudSetStatus('idle');
+    if(!silent) toast('تمت المزامنة','success');
+  }catch(e){
+    console.warn('sync',e);
+    if(cloudIsNet(e)) cloudSetStatus('offline'); else cloudSetStatus('error',cloudErr(e));
+    if(!silent) toast(cloudIsNet(e)?'مفيش اتصال — هتتزامن تلقائياً لما النت يرجع':cloudErr(e),'error');
+  } finally {
+    CLOUD.busy=false;
+    if(CLOUD.again){ CLOUD.again=false; cloudSyncNow(true); }
+  }
+}
+function cloudSchedulePush(ms){
+  if(!CLOUD.on||!CLOUD.uid) return;
+  clearTimeout(CLOUD.timer);
+  CLOUD.timer=setTimeout(()=>cloudSyncNow(true), ms==null?1800:ms);
+}
+function cloudListen(uid){
+  cloudUnlisten();
+  CLOUD.unsub=CLOUD.db.collection('users').doc(uid).onSnapshot(snap=>{
+    if(snap.metadata && snap.metadata.hasPendingWrites) return;
+    const m=snap.exists? snap.data():null; if(!m||!m.ts||m.by===CLOUD.device) return;
+    if(m.ts>cloudSyncTs()) cloudSyncNow(true);          // جهاز تاني عدّل → نسحب التحديث فوراً
+  }, err=>{ cloudSetStatus('error',cloudErr(err)); });
+}
+function cloudUnlisten(){ if(CLOUD.unsub){ try{ CLOUD.unsub(); }catch(e){} CLOUD.unsub=null; } }
+async function cloudStart(uid){
+  if(CLOUD.started===uid) return;
+  CLOUD.started=uid; CLOUD.uid=uid;
+  cloudListen(uid);
+  await cloudSyncNow(true);
+}
+function cloudStop(){ cloudUnlisten(); clearTimeout(CLOUD.timer); CLOUD.started=null; CLOUD.uid=null; CLOUD.busy=false; CLOUD.again=false; cloudSetStatus('off'); }
+function cloudOnAuth(user){
+  CLOUD.authReady=true;
+  if(!user){ if(currentUser && currentUser.uid){ CLOUD.uid=null; CLOUD.started=null; cloudUnlisten(); cloudSetStatus('signedout'); } return; }
+  if(currentUser && currentUser.uid===user.uid) cloudStart(user.uid);
+}
+function cloudAfterEnter(){
+  if(!CLOUD.on||!currentUser) return;
+  cloudInjectUI();
+  if(!currentUser.uid){ cloudSetStatus('signedout','حساب محلي على الجهاز — سجّل خروج ثم ادخل تاني لرفعه للسحابة'); return; }
+  const fu=CLOUD.auth.currentUser;
+  if(fu && fu.uid===currentUser.uid) cloudStart(fu.uid);
+  else cloudSetStatus(CLOUD.authReady?'signedout':'syncing');
+}
+
+/* ── تعديلات الحفظ والتحميل المحلي (تحديد التغييرات غير المرفوعة) ── */
+let __snap='';
+function __snapOf(){ const {__ts,...r}=S; return JSON.stringify(r); }
+const __loadState=loadState;
+loadState=function(){ __loadState(); try{ __snap=S?__snapOf():''; }catch(e){ __snap=''; } };
+const __saveState=saveState;
+saveState=function(){
+  if(currentUser && S){
+    try{
+      const sn=__snapOf();
+      if(CLOUD.applying){ __snap=sn; }
+      else if(sn!==__snap){ __snap=sn; S.__ts=Date.now(); if(CLOUD.on && currentUser.uid){ cloudSetDirty(); cloudSchedulePush(); } }
+    }catch(e){}
+  }
+  __saveState();
+};
+
+/* ── تسجيل الدخول والحساب الجديد (سحابي) ── */
+const __handleLogin=handleLogin;
+handleLogin=function(ev){ if(!CLOUD.on) return __handleLogin(ev); ev.preventDefault(); cloudLogin(); };
+const __handleRegister=handleRegister;
+handleRegister=function(ev){ if(!CLOUD.on) return __handleRegister(ev); ev.preventDefault(); cloudRegister(); };
+
+async function cloudLogin(){
+  const u=document.getElementById('loginUser').value.trim();
+  const p=document.getElementById('loginPass').value;
+  if(!u||!p){ authMsg('اكتب اسم المستخدم وكلمة المرور'); return; }
+  const btn=document.querySelector('#formLogin button[type=submit]');
+  cloudBusy(btn,true,'جاري الدخول...'); authMsg('');
+  try{
+    let cred=null;
+    try{ cred=await CLOUD.auth.signInWithEmailAndPassword(cloudEmail(u),cloudPass(p)); }
+    catch(e){
+      if(cloudIsNet(e)){ cloudBusy(btn,false); return __handleLogin({preventDefault(){}}); }   // أوفلاين → دخول محلي
+      if(['auth/invalid-credential','auth/user-not-found','auth/wrong-password','auth/invalid-login-credentials'].includes(e.code||'')){
+        const legacy=usersStore().find(x=>!x.uid && x.username===u && x.pass===hashPass(p));
+        if(!legacy){ authMsg('بيانات الدخول غير صحيحة — تأكد من اسم المستخدم وكلمة المرور'); return; }
+        try{                                                   // ترحيل حساب محلي قديم للسحابة
+          cred=await CLOUD.auth.createUserWithEmailAndPassword(cloudEmail(u),cloudPass(p));
+          try{ await CLOUD.db.collection('users').doc(cred.user.uid).set({name:legacy.name,username:legacy.username,createdAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}); }catch(_){}
+        }catch(e2){
+          if((e2.code||'')==='auth/email-already-in-use'){ authMsg('الحساب ده موجود على السحابة بكلمة مرور مختلفة — ادخل بكلمة مرور السحابة'); return; }
+          throw e2;
+        }
+      } else throw e;
+    }
+    await cloudFinishLogin(cred.user,u,p);
+  }catch(e){ authMsg(cloudErr(e)); }
+  finally{ cloudBusy(btn,false); }
+}
+async function cloudFinishLogin(fbUser,u,p){
+  let name=u, username=u;
+  try{ const s=await CLOUD.db.collection('users').doc(fbUser.uid).get(); if(s.exists){ const d=s.data(); name=d.name||u; username=d.username||u; } }catch(e){}
+  const list=usersStore();
+  let rec=list.find(x=>x.uid===fbUser.uid) || list.find(x=>!x.uid && String(x.username).toLowerCase()===u.toLowerCase());
+  if(!rec){ rec={id:list.length?Math.max(...list.map(x=>x.id))+1:1, createdAt:new Date().toISOString()}; list.push(rec); }
+  Object.assign(rec,{name,username,uid:fbUser.uid,pass:hashPass(p)});
+  saveUsers(list);
+  localStorage.setItem('hesabati_session',String(rec.id));
+  currentUser=rec; CLOUD.uid=fbUser.uid;
+  loadState();
+  CLOUD.quiet=true;
+  try{ await cloudSyncNow(true); } finally { CLOUD.quiet=false; }   // مزامنة أولية قبل عرض التطبيق
+  enterApp();
+}
+async function cloudRegister(){
+  const name=document.getElementById('regName').value.trim();
+  const u=document.getElementById('regUser').value.trim();
+  const p=document.getElementById('regPass').value;
+  const p2=document.getElementById('regPass2').value;
+  if(name.length<2){ authMsg('اكتب اسمك الكامل'); return; }
+  if(u.length<3){ authMsg('اسم المستخدم 3 أحرف على الأقل'); return; }
+  if(p.length<4){ authMsg('كلمة المرور 4 أحرف على الأقل'); return; }
+  if(p!==p2){ authMsg('كلمتا المرور غير متطابقتين'); return; }
+  if(cloudEmail(u).split('@')[0].length>60){ authMsg('اسم المستخدم طويل جداً'); return; }
+  if(usersStore().some(x=>String(x.username).toLowerCase()===u.toLowerCase())){ authMsg('اسم المستخدم مسجّل بالفعل على هذا الجهاز — سجّل دخول بدل إنشاء حساب'); return; }
+  const btn=document.querySelector('#formRegister button[type=submit]');
+  cloudBusy(btn,true,'جاري إنشاء الحساب...'); authMsg('');
+  try{
+    const cred=await CLOUD.auth.createUserWithEmailAndPassword(cloudEmail(u),cloudPass(p));
+    try{ await CLOUD.db.collection('users').doc(cred.user.uid).set({name,username:u,createdAt:firebase.firestore.FieldValue.serverTimestamp()}); }catch(_){}
+    const list=usersStore();
+    const rec={ id:list.length?Math.max(...list.map(x=>x.id))+1:1, name, username:u, pass:hashPass(p), uid:cred.user.uid, createdAt:new Date().toISOString() };
+    list.push(rec); saveUsers(list);
+    localStorage.setItem('hesabati_session',String(rec.id));
+    currentUser=rec; CLOUD.uid=cred.user.uid;
+    enterApp();
+    toast('تم إنشاء حسابك على السحابة — أهلاً '+name,'success');
+  }catch(e){ authMsg(cloudErr(e)); }
+  finally{ cloudBusy(btn,false); }
+}
+
+/* ── دخول التطبيق / الخروج / تغيير الباسورد والاسم / مسح البيانات ── */
+const __enterApp=enterApp;
+enterApp=function(){ __enterApp(); try{ cloudAfterEnter(); }catch(e){ console.warn(e); } };
+
+const __logout=logout;
+logout=function(){
+  if(!currentUser) return;
+  const had=CLOUD.on && currentUser.uid && CLOUD.uid;
+  const snap=had?{uid:CLOUD.uid,json:JSON.stringify(S),ts:S.__ts||Date.now(),id:currentUser.id,name:currentUser.name,username:currentUser.username,dirty:cloudIsDirty()}:null;
+  __logout();
+  if(currentUser) return;                       // المستخدم لغى
+  if(!CLOUD.on) return;
+  cloudStop();
+  (async()=>{
+    try{ if(snap&&snap.dirty){ const m=await cloudGetMeta(snap.uid); snap.ts=Math.max(snap.ts,(m&&m.ts||0)+1); snap.prevN=m&&m.n||0; await cloudPushRaw(snap); cloudClearDirty(snap.id); } }catch(e){}
+    try{ await CLOUD.auth.signOut(); }catch(e){}
+  })();
+};
+
+const __pfSavePass=pfSavePass;
+pfSavePass=function(ev){
+  if(!CLOUD.on || !currentUser || !currentUser.uid || !CLOUD.auth.currentUser) return __pfSavePass(ev);
+  ev.preventDefault();
+  const o=document.getElementById('pfOldPass').value, n=document.getElementById('pfNewPass').value, c=document.getElementById('pfNewPass2').value;
+  const list=usersStore(); const i=list.findIndex(x=>x.id===currentUser.id);
+  if(i<0||list[i].pass!==hashPass(o)||n.length<4||n!==c||n===o) return __pfSavePass({preventDefault(){}});   // الأصلية تعرض رسالة الخطأ
+  (async()=>{
+    try{
+      const fu=CLOUD.auth.currentUser;
+      await fu.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(fu.email,cloudPass(o)));
+      await fu.updatePassword(cloudPass(n));
+      __pfSavePass({preventDefault(){}});
+    }catch(e){ pfMsg('pfPassMsg',cloudErr(e)); }
+  })();
+};
+const __pfSaveName=pfSaveName;
+pfSaveName=function(ev){
+  const before=currentUser?currentUser.name:'';
+  __pfSaveName(ev);
+  if(CLOUD.on && CLOUD.uid && currentUser && currentUser.name!==before){
+    CLOUD.db.collection('users').doc(CLOUD.uid).set({name:currentUser.name},{merge:true}).catch(()=>{});
+  }
+};
+const __wipeAllData=wipeAllData;
+wipeAllData=function(){
+  if(CLOUD.on && CLOUD.uid && !confirm('☁️ حسابك متزامن مع السحابة: المسح هيشمل السحابة وكل أجهزتك. متابعة؟')) return;
+  __wipeAllData();
+};
+
+/* ── تشغيل Firebase ── */
+(function cloudBoot(){
+  CLOUD.device=localStorage.getItem('hesabati_device')||('d'+uid());
+  try{ localStorage.setItem('hesabati_device',CLOUD.device); }catch(e){}
+  cloudInjectUI();
+  const cfgOk=FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId && FIREBASE_CONFIG.appId;
+  if(!cfgOk || typeof firebase==='undefined'){ cloudSetStatus('off'); return; }
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    CLOUD.auth=firebase.auth(); CLOUD.db=firebase.firestore();
+    try{ CLOUD.db.settings({experimentalAutoDetectLongPolling:true, merge:true}); }catch(e){}
+    CLOUD.on=true; cloudSetStatus('idle');
+  }catch(e){ console.warn(e); cloudSetStatus('error','تعذر تشغيل Firebase — راجع الإعدادات'); return; }
+  const note=document.querySelector('.auth-note');
+  if(note) note.innerHTML='☁️ حسابك وبياناتك محفوظة على السحابة —<br>تقدر تدخل من أي جهاز، والتطبيق يشتغل حتى بدون نت.';
+  CLOUD.auth.onAuthStateChanged(cloudOnAuth);
+  window.addEventListener('online',()=>{ if(CLOUD.uid) cloudSyncNow(true); });
+  window.addEventListener('offline',()=>{ if(CLOUD.uid) cloudSetStatus('offline'); });
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && CLOUD.uid && cloudIsDirty()) cloudSchedulePush(300); });
+})();
+
+/* ═══════════════ بطاقة الرئيسية: ترحيب مختصر ومفيد ═══════════════ */
+function enhanceHero(){
+  const hc=document.getElementById('heroCard'); if(!hc||!currentUser) return;
+  const h=new Date().getHours();
+  const greet=h<5?'مساء الخير':(h<12?'صباح الخير':(h<17?'نهارك سعيد':'مساء الخير'));
+  document.getElementById('heroGreeting').innerHTML=
+    '<span style="display:block;font-size:.72rem;color:var(--text-muted);font-weight:800;margin-bottom:1px">'+greet+'</span>'+
+    '<span style="display:block;font-size:1.2rem;font-weight:900;line-height:1.3">'+esc(currentUser.name)+'</span>';
+  const emps=activeEmployees().length, att=S.attendance.filter(a=>a.date===todayStr()).length;
+  document.getElementById('heroSub').textContent = !emps ? 'ابدأ بإضافة أول موظف من الاختصارات'
+    : (!att ? 'لسه ماتسجلش حضور النهارده' : 'حضور اليوم: '+att+' من '+emps+' موظف');
+  const b=document.getElementById('heroDayStatus'); if(b) b.style.display='none';
+  if(!hc.dataset.tap){ hc.dataset.tap='1'; hc.classList.add('tappable'); hc.setAttribute('role','button'); hc.addEventListener('click',()=>openProfile()); }
+}
+const __renderDashboard2=renderDashboard;
+renderDashboard=function(){ __renderDashboard2(); enhanceHero(); };
+
+/* ═══════════════════════════════════════════════════════════════
+   ✍️ اسم الموظف بيتكتب بدل القوايم (سلفة / حضور / إجازة / مكافأة وجزاء)
+   — القايمة الأصلية مخفية وبتتحدث تلقائياً من الاسم المكتوب، فباقي الكود زي ما هو
+   ═══════════════════════════════════════════════════════════════ */
+const EMP_PICKERS=['attEmployeeSelect','leaveEmpSelect','adjEmpSelect','loanEmpSelect'];
+function empNorm(t){
+  return String(t||'').toLowerCase()
+    .replace(/[\u064B-\u065F\u0670\u0640]/g,'')
+    .replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/ؤ/g,'و').replace(/ئ/g,'ي')
+    .replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+    .replace(/\s+/g,' ').trim();
+}
+function empFind(text){
+  const q=empNorm(text); if(!q) return {status:'empty'};
+  const act=activeEmployees();
+  const exact=act.filter(e=>empNorm(e.name)===q);
+  if(exact.length===1) return {status:'ok',emp:exact[0]};
+  const toks=q.split(' ');
+  const byWords=(arr,extra)=>arr.filter(e=>{
+    const w=empNorm(e.name+(extra?' '+(e.jobTitle||'')+' '+(e.phone||''):'')).split(' ');
+    return toks.every(t=>w.some(x=>x.startsWith(t)));
+  });
+  let cand=byWords(act,false);
+  if(cand.length>1) cand=byWords(act,true).length? byWords(act,true) : cand;   // عند التشابه: نستعين بالوظيفة/الهاتف لو اتكتبوا
+  if(cand.length===1) return {status:'ok',emp:cand[0],partial:exact.length===0};
+  if(cand.length>1) return {status:'many',list:cand};
+  const ids=new Set(act.map(e=>e.id));
+  const inact=S.employees.filter(e=>!ids.has(e.id) && empNorm(e.name).includes(q));
+  if(inact.length) return {status:'inactive',emp:inact[0]};
+  return {status:'none'};
+}
+function empMsg(r){
+  return ({ empty:'اكتب اسم الموظف',
+    none:'مفيش موظف بالاسم ده — راجع الكتابة أو ضيفه من شاشة الموظفين',
+    inactive:'الموظف ده غير نشط',
+    many:'فيه أكتر من موظف بنفس الاسم — اكتب الاسم كامل (ولو متشابهين زوّد الوظيفة أو الهاتف)' })[r.status]||'';
+}
+function empPickerHint(sel,r){
+  const h=document.getElementById(sel+'Hint'); if(!h) return;
+  if(r.status==='ok'){ h.className='emp-hint ok'; h.textContent='✓ '+r.emp.name+(r.emp.jobTitle?' — '+r.emp.jobTitle:'')+(r.partial?' (مطابقة جزئية)':''); }
+  else if(r.status==='many'){ h.className='emp-hint warn'; h.textContent='أكتر من موظف: '+r.list.slice(0,3).map(e=>e.name).join('، ')+(r.list.length>3?'…':'')+' — كمّل الاسم'; }
+  else if(r.status==='none'){ h.className='emp-hint bad'; h.textContent='مفيش موظف بالاسم ده'; }
+  else if(r.status==='inactive'){ h.className='emp-hint bad'; h.textContent='الموظف ده غير نشط'; }
+  else { h.className='emp-hint'; h.textContent=''; }
+}
+function empPickerSync(sel){
+  const el=document.getElementById(sel), inp=document.getElementById(sel+'Name'); if(!el||!inp) return;
+  if(!el.querySelector('option[value=""]')) el.insertAdjacentHTML('afterbegin','<option value=""></option>');
+  const r=empFind(inp.value);
+  el.value = r.status==='ok' ? String(r.emp.id) : '';
+  empPickerHint(sel,r);
+}
+function empPickerClear(sel,focus){
+  const inp=document.getElementById(sel+'Name'); if(!inp) return;
+  inp.value=''; empPickerSync(sel); if(focus) inp.focus();
+}
+function empPickerGuard(sel){
+  const inp=document.getElementById(sel+'Name'); if(!inp) return true;
+  empPickerSync(sel);
+  const r=empFind(inp.value);
+  if(r.status==='ok') return true;
+  toast(empMsg(r),'error'); inp.focus(); return false;
+}
+function enhanceEmpPickers(){
+  EMP_PICKERS.forEach(sel=>{
+    const el=document.getElementById(sel); if(!el||document.getElementById(sel+'Name')) return;
+    const req=el.hasAttribute('required');
+    el.removeAttribute('required'); el.style.display='none';
+    el.insertAdjacentHTML('beforebegin',
+      '<input type="text" id="'+sel+'Name" class="form-control" placeholder="اكتب اسم الموظف" autocomplete="off" autocorrect="off" spellcheck="false"'+(req?' required':'')+'>'+
+      '<div class="emp-hint" id="'+sel+'Hint"></div>');
+    document.getElementById(sel+'Name').addEventListener('input',()=>empPickerSync(sel));
+    empPickerSync(sel);
+  });
+}
+const __fillEmployeeSelect=fillEmployeeSelect;
+fillEmployeeSelect=function(sel,withAll){ __fillEmployeeSelect(sel,withAll); if(EMP_PICKERS.includes(sel)) empPickerSync(sel); };
+
+const __saveLoan5=saveLoan;
+saveLoan=function(ev){
+  if(!empPickerGuard('loanEmpSelect')){ if(ev&&ev.preventDefault) ev.preventDefault(); return; }
+  const n=S.loans.length; __saveLoan5(ev); if(S.loans.length>n) empPickerClear('loanEmpSelect');
+};
+const __saveLeave5=saveLeave;
+saveLeave=function(ev){
+  if(!empPickerGuard('leaveEmpSelect')){ if(ev&&ev.preventDefault) ev.preventDefault(); return; }
+  const n=S.leaves.length; __saveLeave5(ev); if(S.leaves.length>n) empPickerClear('leaveEmpSelect');
+};
+const __saveAdj5=saveAdjustment;
+saveAdjustment=function(){
+  if(!empPickerGuard('adjEmpSelect')) return;
+  const n=S.adjustments.length; __saveAdj5(); if(S.adjustments.length>n) empPickerClear('adjEmpSelect',true);
+};
+const __saveAtt5=saveAttendanceRecord;
+saveAttendanceRecord=function(){
+  if(!empPickerGuard('attEmployeeSelect')) return;
+  const n=S.attendance.length; __saveAtt5(); if(S.attendance.length>n) empPickerClear('attEmployeeSelect',true);
+};
+const __openModal5=openModal;
+openModal=function(id){
+  __openModal5(id);
+  if(id==='modalLoan'||id==='modalLeave'){
+    const m=document.getElementById(id), sel=id==='modalLoan'?'loanEmpSelect':'leaveEmpSelect';
+    if(m && m.classList.contains('open')){ empPickerClear(sel); setTimeout(()=>{ const i=document.getElementById(sel+'Name'); if(i) i.focus(); },220); }
+  }
+};
+const __enterApp5=enterApp;
+enterApp=function(){ __enterApp5(); EMP_PICKERS.forEach(sel=>empPickerClear(sel)); };
+enhanceEmpPickers();
 
 </script>
 
